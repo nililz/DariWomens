@@ -1,40 +1,76 @@
-const callApiButton = document.getElementById("callApiButton");
-const responseText = document.getElementById("responseText");
-const textToSpeechButton = document.getElementById("textToSpeechButton");
+const recordButton = document.getElementById('recordButton');
+const stopButton = document.getElementById('stopButton');
+const audioPlayback = document.getElementById('audioPlayback');
+const callApiButton = document.getElementById('callApiButton');
+const responseText = document.getElementById('responseText');
+const textToSpeechButton = document.getElementById('textToSpeechButton');
 
-let audioUrl = null; // Variable to store the audio URL
+let mediaRecorder;
+let audioChunks = [];
 
-callApiButton.addEventListener("click", async () => {
-    try {
-        // 1. Make the API call to your Flask backend 
-        const response = await fetch('/process_audio', {
-            method: 'POST', 
+navigator.mediaDevices.getUserMedia({ audio: true })
+    .then(stream => {
+        mediaRecorder = new MediaRecorder(stream);
+
+        mediaRecorder.ondataavailable = event => {
+            audioChunks.push(event.data);
+        };
+
+        mediaRecorder.onstop = () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' }); 
+            const audioUrl = URL.createObjectURL(audioBlob);
+            audioPlayback.src = audioUrl; 
+            audioPlayback.controls = true;
+
+            // Enable API call button
+            callApiButton.disabled = false;
+        };
+
+        recordButton.addEventListener('click', () => {
+            audioChunks = []; // Reset audio chunks
+            mediaRecorder.start();
+            recordButton.disabled = true;
+            stopButton.disabled = false;
         });
 
-        // 2. Parse the JSON response
+        stopButton.addEventListener('click', () => {
+            mediaRecorder.stop();
+            recordButton.disabled = false;
+            stopButton.disabled = true;
+        });
+    })
+    .catch(err => {
+        console.error('Error accessing microphone:', err);
+    });
+
+callApiButton.addEventListener('click', async () => {
+    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+    const formData = new FormData();
+    formData.append('audio', audioBlob, 'recording.wav');
+
+    try {
+        const response = await fetch('/process_audio', {
+            method: 'POST',
+            body: formData
+        });
+
         if (!response.ok) {
             throw new Error(`HTTP error! Status: ${response.status}`);
         }
-        const responseData = await response.json(); 
 
-        // 3. Update the textarea with the text response
+        const responseData = await response.json();
         responseText.value = responseData.text;
-
-        // 4. Store the audio URL for playback later 
-        audioUrl = responseData.audio; 
+        
+        // Enable Text-to-Speech button
+        audioPlayback.src = responseData.audio;
+        textToSpeechButton.disabled = false; 
+        audioPlayback.load(); 
 
     } catch (error) {
-        console.error("Error calling API:", error);
-        // Implement proper error handling for the user (e.g., an alert)
+        console.error('Error calling API:', error);
     }
 });
 
-// Event Listener for "Read Response" Button
-textToSpeechButton.addEventListener("click", () => {
-    if (audioUrl) {
-        const audioPlayer = new Audio(audioUrl);
-        audioPlayer.play();
-    } else {
-        alert("Please call the API first to generate an audio response.");
-    }
+textToSpeechButton.addEventListener('click', () => {
+    audioPlayback.play(); 
 });

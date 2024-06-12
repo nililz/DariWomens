@@ -3,14 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Speech Recognition and Response</title>
+    <title>Dari Health</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}"> 
 </head>
 <body>
-    <h1>Speech Recognition and Response</h1>
-    <button id="callApiButton">Call API</button>
-    <textarea id="responseText" rows="4" cols="50" placeholder="Response will appear here..."></textarea>
-    <button id="textToSpeechButton">Read Response</button>
+    <div class="container">
+        <h1>Dari Health</h1>
 
-    <script src="/static/scripts.js"></script>
+        <div class="recording-controls">
+            <button id="recordButton">Start Recording</button>
+            <button id="stopButton" disabled>Stop Recording</button>
+        </div>
+
+        <audio id="audioPlayback" controls></audio> 
+
+        <div class="ai-controls">
+            <button id="callApiButton" disabled>Send to AI</button> 
+            <textarea id="responseText" rows="4" cols="50" placeholder="Response will appear here..."></textarea>
+            <button id="textToSpeechButton" disabled>Read Response</button>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='scripts.js') }}"></script>
 </body>
 </html>
